@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The FHIR Analytics Black Hole — PREDIQA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0B1E3F;
+    --navy-2:#13294B;
+    --ink:#0B1E3F;
+    --paper:#FBFAF7;
+    --paper-2:#F2EFE9;
+    --line:#D8D2C6;
+    --muted:#5C6473;
+    --rule:#C9C2B4;
+    /* four engine accents */
+    --cofler:#2E6F95;   /* clinical / blue-teal */
+    --flip:#1D9E75;     /* provider audit / green */
+    --empathify:#C8761E;/* human signal / amber */
+    --fraudiq:#A6324A;  /* forensic / crimson */
+    --gold:#C49A4A;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif;
+    font-size:17px;line-height:1.65;font-weight:400;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 28px}
+
+  /* ---------- masthead ---------- */
+  .masthead{background:var(--navy);color:#EDEAE2}
+  .masthead .wrap{padding-top:30px;padding-bottom:30px}
+  .brandrow{display:flex;align-items:center;justify-content:space-between;gap:16px;
+    border-bottom:1px solid rgba(255,255,255,.16);padding-bottom:16px;margin-bottom:30px}
+  .brandmark{display:flex;align-items:center;gap:11px;font-family:"Fraunces",serif;
+    font-weight:600;font-size:20px;letter-spacing:.01em}
+  .brandmark .dot{width:11px;height:11px;border-radius:50%;
+    background:linear-gradient(135deg,var(--cofler),var(--flip));display:inline-block}
+  .brandmark .tag{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:400;
+    color:#9FB0C6;letter-spacing:.16em;text-transform:uppercase;padding-left:11px;margin-left:3px;
+    border-left:1px solid rgba(255,255,255,.22)}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--gold);margin:0 0 18px}
+  h1.title{font-family:"Fraunces",serif;font-weight:600;font-size:46px;line-height:1.06;
+    letter-spacing:-.01em;margin:0 0 18px;color:#fff}
+  .deck{font-size:19px;line-height:1.5;color:#C8D2E0;max-width:640px;margin:0;font-weight:400}
+  .byline{margin-top:26px;font-family:"IBM Plex Mono",monospace;font-size:11px;
+    letter-spacing:.12em;text-transform:uppercase;color:#8595AC}
+
+  /* ---------- body ---------- */
+  main .wrap{padding-top:46px;padding-bottom:30px}
+  p{margin:0 0 19px}
+  .lead{font-size:19.5px;line-height:1.58}
+  .lead:first-letter{font-family:"Fraunces",serif;font-weight:600;font-size:3.4em;
+    float:left;line-height:.82;padding:6px 10px 0 0;color:var(--navy)}
+  strong{font-weight:600;color:var(--navy)}
+  em{font-style:italic}
+  a.ref{color:var(--cofler);text-decoration:none;font-weight:500;
+    font-size:.72em;vertical-align:super;padding:0 1px}
+  a.ref:hover{text-decoration:underline}
+
+  .section-num{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.16em;
+    color:var(--muted);text-transform:uppercase}
+  h2{font-family:"Fraunces",serif;font-weight:600;font-size:30px;line-height:1.12;
+    letter-spacing:-.01em;margin:8px 0 6px;color:var(--navy)}
+  .problem-tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+    letter-spacing:.14em;text-transform:uppercase;padding:3px 9px;border-radius:3px;
+    margin-bottom:14px;font-weight:500}
+  .tag-problem{background:rgba(166,50,74,.1);color:var(--fraudiq)}
+  .tag-solution{background:rgba(29,158,117,.12);color:#147a59}
+
+  hr.div{border:0;border-top:1px solid var(--rule);margin:46px 0}
+  .gap-block{padding-top:8px}
+
+  .solution{background:#fff;border:1px solid var(--line);border-left:3px solid var(--flip);
+    border-radius:0 6px 6px 0;padding:18px 22px;margin:6px 0 4px}
+  .solution .lab{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:#147a59;font-weight:500;display:block;margin-bottom:5px}
+  .solution p{margin:0;font-size:16.5px;line-height:1.55}
+
+  /* figure / diagram */
+  figure{margin:26px 0 8px;background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:20px 18px 14px;overflow:hidden}
+  figure svg{display:block;width:100%;height:auto}
+  figcaption{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;
+    color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--paper-2);
+    text-transform:uppercase}
+
+  /* use-case framing */
+  .uc-meta{display:flex;gap:0;margin:18px 0 4px;border:1px solid var(--line);border-radius:6px;
+    overflow:hidden}
+  .uc-meta>div{flex:1;padding:13px 16px}
+  .uc-meta .vs{flex:0 0 1px;background:var(--line)}
+  .uc-meta h4{margin:0 0 5px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+    letter-spacing:.12em;text-transform:uppercase}
+  .uc-before h4{color:var(--fraudiq)}
+  .uc-after h4{color:#147a59}
+  .uc-meta p{margin:0;font-size:14.5px;line-height:1.5;color:var(--muted)}
+  .uc-after{background:#fbfdfc}
+
+  .takeaway{font-family:"Fraunces",serif;font-style:italic;font-size:18px;line-height:1.5;
+    color:var(--navy);border-left:2px solid var(--gold);padding:2px 0 2px 18px;margin:14px 0 4px}
+  .takeaway b{font-style:normal;font-weight:600}
+
+  /* svg diagram text styling — applies to inline svg */
+  svg text{font-family:"IBM Plex Sans",sans-serif}
+  .d-title{font-size:14px;font-weight:600;fill:var(--navy)}
+  .d-sub{font-size:12px;font-weight:400}
+  .d-cap{font-size:11.5px;font-weight:400;fill:var(--muted)}
+
+  /* closing */
+  .closer{background:var(--navy);color:#E8EBF0;margin-top:48px}
+  .closer .wrap{padding:44px 28px 40px}
+  .closer h2{color:#fff;margin-top:0}
+  .closer p{color:#C2CCDB}
+  .closer .stamp{font-family:"Fraunces",serif;font-weight:600;font-size:22px;color:#fff;
+    line-height:1.4;margin:20px 0 0;border-top:1px solid rgba(255,255,255,.16);padding-top:22px}
+  .closer .stamp span{color:var(--gold)}
+
+  /* references */
+  .refs{background:var(--paper-2)}
+  .refs .wrap{padding:36px 28px 44px}
+  .refs h3{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 18px;font-weight:500}
+  ol.reflist{margin:0;padding-left:0;list-style:none;counter-reset:r}
+  ol.reflist li{counter-increment:r;position:relative;padding-left:34px;margin-bottom:15px;
+    font-size:13.5px;line-height:1.5;color:#42454d}
+  ol.reflist li::before{content:counter(r);position:absolute;left:0;top:0;
+    font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;color:var(--cofler);
+    background:#fff;border:1px solid var(--line);width:22px;height:22px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center}
+  ol.reflist li a{color:var(--cofler);text-decoration:none;word-break:break-word}
+  ol.reflist li a:hover{text-decoration:underline}
+  .reflist .src{color:var(--muted);font-style:italic}
+
+  footer.legal{background:var(--navy-2);color:#7C8AA0}
+  footer.legal .wrap{padding:20px 28px;font-size:11.5px;line-height:1.6;
+    font-family:"IBM Plex Mono",monospace;letter-spacing:.03em}
+  footer.legal a{color:#9FB0C6}
+
+  @media (max-width:640px){
+    h1.title{font-size:34px}
+    h2{font-size:25px}
+    .uc-meta{flex-direction:column}
+    .uc-meta .vs{height:1px;flex:none}
+    .wrap{padding:0 20px}
+  }
+  @media print{
+    body{font-size:11.5pt;background:#fff}
+    .wrap{max-width:100%;padding:0 14mm}
+    .masthead,.closer,.refs,footer.legal{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    figure,.solution,.uc-meta,.gap-block{break-inside:avoid;page-break-inside:avoid}
+    h2{break-after:avoid}
+    h1.title{font-size:32pt}
+    a.ref{color:var(--cofler)}
+    hr.div{margin:26px 0}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ MASTHEAD ============ -->
+<header class="masthead">
+  <div class="wrap">
+    <div class="brandrow">
+      <div class="brandmark"><span class="dot"></span>PREDIQA<span class="tag">Healthcare Intelligence Fabric</span></div>
+      <div class="brandmark" style="font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:400;color:#9FB0C6;letter-spacing:.1em">WHITE PAPER</div>
+    </div>
+    <p class="kicker">Interoperability solved · Intelligence pending</p>
+    <h1 class="title">The FHIR Analytics Black&nbsp;Hole</h1>
+    <p class="deck">Why your hospital's data is trapped — and the intelligence layer that lets it escape.</p>
+    <p class="byline">A PREDIQA technical brief for healthcare leaders, technologists &amp; investors</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <p class="lead">FHIR solved one problem brilliantly: moving data between systems. Before it, sending a patient record from Hospital A to Hospital B meant custom interfaces and months of engineering. FHIR standardised the format, and data started flowing.</p>
+
+    <p>But here's the part nobody mentioned: <strong>FHIR solved interoperability, not intelligence.</strong> Despite its advantages for exchange, the standard was not originally designed for analytical queries.<a class="ref" href="#r1">1</a> Data pours in; insight struggles to come out. Your EHR exports clean FHIR bundles, your data lake stores millions of them, but when your CFO asks <em>"what's our denial rate by payer and DRG, and which attendings are driving it?"</em> your analysts spend three days writing queries instead of three minutes reading a dashboard.</p>
+
+    <p>That gap is the black hole. Here it is in one picture.</p>
+
+    <figure>
+      <svg viewBox="0 0 760 200" role="img" aria-label="FHIR data flows into a data lake easily, but the path from the lake to insight is blocked.">
+        <defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+        <rect x="40" y="70" width="170" height="58" rx="7" fill="#E6F0EC" stroke="#1D9E75" stroke-width="1"/>
+        <text class="d-title" x="125" y="94" text-anchor="middle">FHIR data</text>
+        <text class="d-sub" x="125" y="113" text-anchor="middle" fill="#147a59">flows in easily</text>
+        <rect x="295" y="70" width="170" height="58" rx="7" fill="#EFECE5" stroke="#B0A899" stroke-width="1"/>
+        <text class="d-title" x="380" y="94" text-anchor="middle">Data lake</text>
+        <text class="d-sub" x="380" y="113" text-anchor="middle" fill="#5C6473">millions of bundles</text>
+        <rect x="550" y="70" width="170" height="58" rx="7" fill="#F6ECE9" stroke="#A6324A" stroke-width="1"/>
+        <text class="d-title" x="635" y="94" text-anchor="middle" fill="#7c2438">Insight</text>
+        <text class="d-sub" x="635" y="113" text-anchor="middle" fill="#A6324A">struggles to escape</text>
+        <line x1="212" y1="99" x2="291" y2="99" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar)"/>
+        <line x1="467" y1="99" x2="546" y2="99" stroke="#A6324A" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+        <text class="d-cap" x="506" y="150" text-anchor="middle" fill="#A6324A">the black hole — this step breaks</text>
+      </svg>
+      <figcaption>Fig. 0 — Data enters easily; the leap from storage to insight is where it stalls.</figcaption>
+    </figure>
+
+    <p>The black hole isn't that FHIR is bad. It's that FHIR <em>stops</em> where analytics <em>begins</em>. There are five structural reasons for this. Each is a problem; each has a solution.</p>
+
+    <hr class="div">
+
+    <!-- ============ GAP 1 ============ -->
+    <section class="gap-block">
+      <div class="section-num">Gap 01</div>
+      <span class="problem-tag tag-problem" style="margin-top:8px">Problem</span>
+      <h2>FHIR is a tree. Analytics needs tables.</h2>
+      <p>FHIR represents a patient as a nested tree — Patient → Encounter → Condition → Observation, each holding embedded arrays. Analytics needs flat tables with columns and keys that SQL can join. FHIR's hierarchical, graph-like structure makes it difficult to represent within traditional relational models, yet a relational model is exactly what analytics requires.<a class="ref" href="#r2">2</a> To compute "average length of stay by attending and DRG" — a four-line query in a warehouse — against raw FHIR you must parse nested fields, resolve reference IDs to other resources, and handle fields that may be a string, number, or code depending on the record. A ten-minute task becomes ten hours.</p>
+
+      <figure>
+        <svg viewBox="0 0 760 300" role="img" aria-label="A nested FHIR resource tree on the left, flattened into a relational table on the right.">
+          <defs><marker id="ar1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <text class="d-title" x="160" y="38" text-anchor="middle">what FHIR gives you</text>
+          <rect x="118" y="54" width="86" height="34" rx="6" fill="#E6F0EC" stroke="#1D9E75"/>
+          <text class="d-sub" x="161" y="75" text-anchor="middle" fill="#147a59">Patient</text>
+          <rect x="118" y="112" width="86" height="34" rx="6" fill="#E6F0EC" stroke="#1D9E75"/>
+          <text class="d-sub" x="161" y="133" text-anchor="middle" fill="#147a59">Encounter</text>
+          <rect x="58" y="170" width="88" height="34" rx="6" fill="#E6F0EC" stroke="#1D9E75"/>
+          <text class="d-sub" x="102" y="191" text-anchor="middle" fill="#147a59">Condition</text>
+          <rect x="176" y="170" width="98" height="34" rx="6" fill="#E6F0EC" stroke="#1D9E75"/>
+          <text class="d-sub" x="225" y="191" text-anchor="middle" fill="#147a59">Observation</text>
+          <line x1="161" y1="88" x2="161" y2="112" stroke="#5C6473" stroke-width="1.4" marker-end="url(#ar1)"/>
+          <path d="M161 146 V158 L102 158 V170" fill="none" stroke="#5C6473" stroke-width="1.4" marker-end="url(#ar1)"/>
+          <path d="M161 146 V158 L225 158 V170" fill="none" stroke="#5C6473" stroke-width="1.4" marker-end="url(#ar1)"/>
+          <text class="d-cap" x="161" y="232" text-anchor="middle">nested · hard to query</text>
+          <line x1="300" y1="150" x2="360" y2="150" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar1)"/>
+          <text class="d-cap" x="330" y="138" text-anchor="middle">flatten</text>
+          <text class="d-title" x="560" y="38" text-anchor="middle">what analytics needs</text>
+          <rect x="400" y="62" width="300" height="124" rx="7" fill="#EAF1F6" stroke="#2E6F95"/>
+          <line x1="400" y1="94" x2="700" y2="94" stroke="#2E6F95" stroke-width=".8"/>
+          <line x1="400" y1="124" x2="700" y2="124" stroke="#2E6F95" stroke-width=".6" opacity=".45"/>
+          <line x1="400" y1="155" x2="700" y2="155" stroke="#2E6F95" stroke-width=".6" opacity=".45"/>
+          <line x1="500" y1="62" x2="500" y2="186" stroke="#2E6F95" stroke-width=".6" opacity=".45"/>
+          <line x1="600" y1="62" x2="600" y2="186" stroke="#2E6F95" stroke-width=".6" opacity=".45"/>
+          <text class="d-sub" x="450" y="83" text-anchor="middle" fill="#1f4f6b">attending</text>
+          <text class="d-sub" x="550" y="83" text-anchor="middle" fill="#1f4f6b">DRG</text>
+          <text class="d-sub" x="650" y="83" text-anchor="middle" fill="#1f4f6b">avg LOS</text>
+          <text class="d-sub" x="450" y="113" text-anchor="middle" fill="#5C6473">Dr. Rao</text>
+          <text class="d-sub" x="550" y="113" text-anchor="middle" fill="#5C6473">871</text>
+          <text class="d-sub" x="650" y="113" text-anchor="middle" fill="#5C6473">6.2</text>
+          <text class="d-sub" x="450" y="144" text-anchor="middle" fill="#5C6473">Dr. Sen</text>
+          <text class="d-sub" x="550" y="144" text-anchor="middle" fill="#5C6473">291</text>
+          <text class="d-sub" x="650" y="144" text-anchor="middle" fill="#5C6473">3.8</text>
+          <text class="d-sub" x="450" y="175" text-anchor="middle" fill="#5C6473">Dr. Roy</text>
+          <text class="d-sub" x="550" y="175" text-anchor="middle" fill="#5C6473">470</text>
+          <text class="d-sub" x="650" y="175" text-anchor="middle" fill="#5C6473">4.1</text>
+          <text class="d-cap" x="550" y="210" text-anchor="middle">flat · one short query</text>
+        </svg>
+        <figcaption>Fig. 1 — The same encounter, before and after flattening.</figcaption>
+      </figure>
+
+      <div class="solution">
+        <span class="lab">PREDIQA · normalisation engine</span>
+        <p>PREDIQA auto-flattens FHIR into relational tables — de-duplicating records, mapping terminology, and tagging provenance — so your existing SQL talent and BI tools work against clean, rectangular data instead of fighting nested JSON.</p>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ============ GAP 2 ============ -->
+    <section class="gap-block">
+      <div class="section-num">Gap 02</div>
+      <span class="problem-tag tag-problem" style="margin-top:8px">Problem</span>
+      <h2>FHIR resources are siloed by design.</h2>
+      <p>Patient, Encounter, Claim and DiagnosticReport are stored as independent resources, linked only by reference IDs. There is no native way to <em>correlate</em> across them. FHIR is a deeply nested graph, so cohort analytics with many-to-many relationships require countless chained queries over the REST API — extremely time-consuming, and in many cases impossible.<a class="ref" href="#r3">3</a> So a long ICU stay (clinical), a medical-necessity denial (financial), and the same attending's three other denials this month (operational) sit in three separate places. Your hospital sees isolated data points. What it misses is the compound pattern: one attending's documentation failures costing $340,000 a quarter.</p>
+
+      <figure>
+        <svg viewBox="0 0 760 240" role="img" aria-label="Three disconnected signal boxes feed, via a correlation step, into a single compound risk score.">
+          <defs><marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <text class="d-title" x="160" y="34" text-anchor="middle">FHIR · three islands</text>
+          <rect x="55" y="52" width="210" height="40" rx="6" fill="#EFECE5" stroke="#B0A899"/>
+          <text class="d-sub" x="160" y="76" text-anchor="middle" fill="#42454d">long ICU stay — clinical</text>
+          <rect x="55" y="106" width="210" height="40" rx="6" fill="#EFECE5" stroke="#B0A899"/>
+          <text class="d-sub" x="160" y="130" text-anchor="middle" fill="#42454d">claim denial — financial</text>
+          <rect x="55" y="160" width="210" height="40" rx="6" fill="#EFECE5" stroke="#B0A899"/>
+          <text class="d-sub" x="160" y="184" text-anchor="middle" fill="#42454d">repeat denials — operational</text>
+          <path d="M265 72 L300 72 L300 122 L356 122" fill="none" stroke="#5C6473" stroke-width="1.4"/>
+          <line x1="265" y1="126" x2="356" y2="126" stroke="#5C6473" stroke-width="1.4"/>
+          <path d="M265 180 L300 180 L300 130 L356 130" fill="none" stroke="#5C6473" stroke-width="1.4"/>
+          <line x1="356" y1="126" x2="392" y2="126" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar2)"/>
+          <text class="d-cap" x="330" y="108" text-anchor="middle">correlate</text>
+          <text class="d-title" x="565" y="34" text-anchor="middle">PREDIQA · one pattern</text>
+          <rect x="410" y="90" width="300" height="72" rx="8" fill="#F7EFDF" stroke="#C8761E"/>
+          <text class="d-title" x="560" y="120" text-anchor="middle" fill="#8a5012">compound risk: 87</text>
+          <text class="d-sub" x="560" y="142" text-anchor="middle" fill="#8a5012">one attending · $340K / quarter</text>
+        </svg>
+        <figcaption>Fig. 2 — Four isolated dots become one accountable pattern.</figcaption>
+      </figure>
+
+      <div class="solution">
+        <span class="lab">PREDIQA · correlation engine</span>
+        <p>PREDIQA matches signals across its six levers — clinical, financial, operational, legal, empathy and resource — using shared entity identifiers and temporal windows, surfacing compound risk that no single resource reveals.</p>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ============ GAP 3 ============ -->
+    <section class="gap-block">
+      <div class="section-num">Gap 03</div>
+      <span class="problem-tag tag-problem" style="margin-top:8px">Problem</span>
+      <h2>FHIR APIs are read-and-write, not analyse.</h2>
+      <p>FHIR gives you create, read, update and delete on individual resources. Analytics needs aggregation across millions of records, cross-resource joins, temporal windowing and cohort scoring — and the SQL-on-FHIR working group deliberately excluded sorting, grouping and join operations from the specification, leaving those to downstream engines once data is already flattened.<a class="ref" href="#r4">4</a> You simply cannot ask FHIR: <em>"show me all encounters where LOS exceeded 1.5 SD from the DRG norm AND denials spiked in the same unit within 30 days."</em> That query pattern doesn't exist in the core API.</p>
+
+      <figure>
+        <svg viewBox="0 0 760 232" role="img" aria-label="A wall divides the four CRUD operations FHIR supports from the four analytics operations it does not.">
+          <rect x="40" y="50" width="270" height="156" rx="9" fill="#E6F0EC" stroke="#1D9E75"/>
+          <text class="d-title" x="175" y="78" text-anchor="middle" fill="#147a59">what FHIR does</text>
+          <text class="d-sub" x="175" y="108" text-anchor="middle" fill="#2f5c4d">create a record</text>
+          <text class="d-sub" x="175" y="133" text-anchor="middle" fill="#2f5c4d">read a record</text>
+          <text class="d-sub" x="175" y="158" text-anchor="middle" fill="#2f5c4d">update a record</text>
+          <text class="d-sub" x="175" y="183" text-anchor="middle" fill="#2f5c4d">delete a record</text>
+          <line x1="380" y1="44" x2="380" y2="212" stroke="#A6324A" stroke-width="2.2" stroke-dasharray="6 5"/>
+          <text class="d-cap" x="380" y="226" text-anchor="middle" fill="#A6324A">the wall</text>
+          <rect x="450" y="50" width="270" height="156" rx="9" fill="#F7EFDF" stroke="#C8761E"/>
+          <text class="d-title" x="585" y="78" text-anchor="middle" fill="#8a5012">what analytics needs</text>
+          <text class="d-sub" x="585" y="108" text-anchor="middle" fill="#6f4313">sum / average millions</text>
+          <text class="d-sub" x="585" y="133" text-anchor="middle" fill="#6f4313">join across resources</text>
+          <text class="d-sub" x="585" y="158" text-anchor="middle" fill="#6f4313">window by time</text>
+          <text class="d-sub" x="585" y="183" text-anchor="middle" fill="#6f4313">score cohorts</text>
+        </svg>
+        <figcaption>Fig. 3 — The operations FHIR was built for, and the ones analytics actually needs.</figcaption>
+      </figure>
+
+      <div class="solution">
+        <span class="lab">PREDIQA · analytics-optimised storage</span>
+        <p>Behind ingestion, PREDIQA runs PostgreSQL for real-time dashboards, columnar stores for large-scale aggregation, and ML pipelines for predictive scoring — turning questions FHIR can't answer into sub-second dashboard queries.</p>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ============ GAP 4 ============ -->
+    <section class="gap-block">
+      <div class="section-num">Gap 04</div>
+      <span class="problem-tag tag-problem" style="margin-top:8px">Problem</span>
+      <h2>FHIR can't read unstructured data.</h2>
+      <p>FHIR stores a discharge summary as a <em>DocumentReference</em> — but it's three pages of narrative text. Because writing notes is the most widespread way clinicians record events, most of a patient's disease history remains locked behind free-form text,<a class="ref" href="#r5">5</a> and structured fields routinely under-capture what the notes contain.<a class="ref" href="#r6">6</a> FHIR can't tell you whether the note says "acute respiratory failure" (which justifies a high-level DRG) or merely "respiratory distress" (which doesn't). A coder reviews every case by hand, and denials slip through.</p>
+
+      <figure>
+        <svg viewBox="0 0 760 232" role="img" aria-label="A free-text note passes through a clinical NLP step and becomes structured, coded entities with a documentation score.">
+          <defs><marker id="ar4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <text class="d-title" x="130" y="42" text-anchor="middle">free-text note</text>
+          <rect x="40" y="54" width="180" height="120" rx="7" fill="#EFECE5" stroke="#B0A899"/>
+          <line x1="58" y1="82" x2="202" y2="82" stroke="#9a9282" stroke-width=".7"/>
+          <line x1="58" y1="100" x2="202" y2="100" stroke="#9a9282" stroke-width=".7"/>
+          <line x1="58" y1="118" x2="180" y2="118" stroke="#9a9282" stroke-width=".7"/>
+          <line x1="58" y1="136" x2="202" y2="136" stroke="#9a9282" stroke-width=".7"/>
+          <line x1="58" y1="154" x2="158" y2="154" stroke="#9a9282" stroke-width=".7"/>
+          <rect x="300" y="92" width="104" height="46" rx="7" fill="#F1E9F0" stroke="#7d4b78"/>
+          <text class="d-title" x="352" y="112" text-anchor="middle" fill="#5d3559">clinical</text>
+          <text class="d-sub" x="352" y="128" text-anchor="middle" fill="#5d3559">NLP</text>
+          <line x1="220" y1="115" x2="297" y2="115" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar4)"/>
+          <line x1="404" y1="115" x2="481" y2="115" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar4)"/>
+          <rect x="484" y="54" width="236" height="40" rx="6" fill="#EAF1F6" stroke="#2E6F95"/>
+          <text class="d-sub" x="602" y="78" text-anchor="middle" fill="#1f4f6b">acute respiratory failure ✓</text>
+          <rect x="484" y="104" width="236" height="40" rx="6" fill="#EAF1F6" stroke="#2E6F95"/>
+          <text class="d-sub" x="602" y="128" text-anchor="middle" fill="#1f4f6b">AKI mentioned in notes</text>
+          <rect x="484" y="154" width="236" height="40" rx="6" fill="#F7EFDF" stroke="#C8761E"/>
+          <text class="d-sub" x="602" y="178" text-anchor="middle" fill="#8a5012">documentation score: 62 / 100</text>
+        </svg>
+        <figcaption>Fig. 4 — Meaning extracted from prose, scored against the DRG rubric.</figcaption>
+      </figure>
+
+      <div class="solution">
+        <span class="lab">PREDIQA · clinical NLP pipeline</span>
+        <p>PREDIQA's NLP layer extracts diagnoses, procedures and clinical entities from narrative text and scores documentation completeness against DRG-specific rubrics — surfacing the gap <em>before</em> the claim goes out.</p>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ============ GAP 5 ============ -->
+    <section class="gap-block">
+      <div class="section-num">Gap 05</div>
+      <span class="problem-tag tag-problem" style="margin-top:8px">Problem</span>
+      <h2>FHIR knows nothing about money, payers or compliance.</h2>
+      <p>FHIR standardises clinical data: diagnoses, procedures, medications, vitals. A complete picture of care <em>and</em> cost requires merging the clinical data providers hold with the claims data payers hold<a class="ref" href="#r7">7</a> — yet the standard says nothing about X12 EDI claims, remittances, payer rules (NCCI edits, coverage policies), prior-auth matrices, or compliance scoring. Your compliance officer needs to know whether billing patterns match this year's OIG Work Plan priorities — but the encounter data lives in FHIR and the Work Plan is a PDF on a government website. Connecting them takes rules and domain expertise FHIR was never built to hold.</p>
+
+      <figure>
+        <svg viewBox="0 0 760 250" role="img" aria-label="Four source boxes — FHIR clinical, X12 claims, payer rules, compliance logs — feed into one unified model.">
+          <defs><marker id="ar5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <rect x="40" y="40" width="190" height="38" rx="6" fill="#E6F0EC" stroke="#1D9E75"/>
+          <text class="d-sub" x="135" y="64" text-anchor="middle" fill="#147a59">FHIR clinical data</text>
+          <rect x="40" y="92" width="190" height="38" rx="6" fill="#EFECE5" stroke="#B0A899"/>
+          <text class="d-sub" x="135" y="116" text-anchor="middle" fill="#42454d">X12 EDI claims</text>
+          <rect x="40" y="144" width="190" height="38" rx="6" fill="#EFECE5" stroke="#B0A899"/>
+          <text class="d-sub" x="135" y="168" text-anchor="middle" fill="#42454d">payer rules / NCCI edits</text>
+          <rect x="40" y="196" width="190" height="38" rx="6" fill="#EFECE5" stroke="#B0A899"/>
+          <text class="d-sub" x="135" y="220" text-anchor="middle" fill="#42454d">OIG / compliance logs</text>
+          <path d="M230 59 L300 59 L300 130 L356 130" fill="none" stroke="#5C6473" stroke-width="1.4"/>
+          <path d="M230 111 L300 111 L300 130 L356 130" fill="none" stroke="#5C6473" stroke-width="1.4"/>
+          <line x1="230" y1="163" x2="300" y2="163" stroke="#5C6473" stroke-width="1.4"/>
+          <path d="M300 130 L300 163" fill="none" stroke="#5C6473" stroke-width="1.4"/>
+          <path d="M230 215 L300 215 L300 130" fill="none" stroke="#5C6473" stroke-width="1.4"/>
+          <line x1="300" y1="130" x2="356" y2="130" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar5)"/>
+          <rect x="360" y="98" width="300" height="64" rx="8" fill="#EAF1F6" stroke="#2E6F95"/>
+          <text class="d-title" x="510" y="124" text-anchor="middle" fill="#1f4f6b">one unified model</text>
+          <text class="d-sub" x="510" y="145" text-anchor="middle" fill="#2E6F95">clinical + financial + compliance</text>
+        </svg>
+        <figcaption>Fig. 5 — Clinical, financial and compliance sources normalised into one model.</figcaption>
+      </figure>
+
+      <div class="solution">
+        <span class="lab">PREDIQA · multi-source ingestion</span>
+        <p>PREDIQA normalises X12 EDI, payer APIs, HR systems and compliance logs into the <em>same</em> unified model as the FHIR clinical data — so a billing pattern and an OIG priority area can finally be checked against each other.</p>
+      </div>
+    </section>
+
+    <hr class="div">
+
+    <!-- ============ THE STACK ============ -->
+    <section class="gap-block">
+      <span class="problem-tag tag-solution" style="margin-top:0">The intelligence layer</span>
+      <h2>One layer, completing FHIR — not replacing it.</h2>
+      <p>The fix isn't to modify FHIR or replace it. It's to <em>complete</em> it with an intelligence layer that sits above ingestion and turns standardised data into correlated, predictive, actionable insight. This is the PREDIQA fabric.</p>
+
+      <figure>
+        <svg viewBox="0 0 760 330" role="img" aria-label="A vertical stack: sources feed normalisation, then correlation and NLP, then analytics storage, producing dashboards and predictions at the top.">
+          <defs><marker id="ar6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <rect x="230" y="278" width="300" height="42" rx="7" fill="#EFECE5" stroke="#B0A899"/>
+          <text class="d-sub" x="380" y="303" text-anchor="middle" fill="#42454d">sources · FHIR, X12, payer rules, notes</text>
+          <rect x="230" y="220" width="300" height="42" rx="7" fill="#E6F0EC" stroke="#1D9E75"/>
+          <text class="d-sub" x="380" y="245" text-anchor="middle" fill="#147a59">normalisation — flatten to tables</text>
+          <rect x="230" y="162" width="300" height="42" rx="7" fill="#F1E9F0" stroke="#7d4b78"/>
+          <text class="d-sub" x="380" y="187" text-anchor="middle" fill="#5d3559">correlation engine + clinical NLP</text>
+          <rect x="230" y="104" width="300" height="42" rx="7" fill="#EAF1F6" stroke="#2E6F95"/>
+          <text class="d-sub" x="380" y="129" text-anchor="middle" fill="#1f4f6b">analytics storage + ML scoring</text>
+          <rect x="230" y="46" width="300" height="42" rx="7" fill="#F7EFDF" stroke="#C8761E"/>
+          <text class="d-title" x="380" y="72" text-anchor="middle" fill="#8a5012">dashboards &amp; predictions</text>
+          <line x1="380" y1="278" x2="380" y2="264" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar6)"/>
+          <line x1="380" y1="220" x2="380" y2="206" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar6)"/>
+          <line x1="380" y1="162" x2="380" y2="148" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar6)"/>
+          <line x1="380" y1="104" x2="380" y2="90" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar6)"/>
+        </svg>
+        <figcaption>Fig. 6 — The PREDIQA stack: ingestion at the base, intelligence in the middle, decisions at the top.</figcaption>
+      </figure>
+
+      <p>Three short scenarios show what that stack does in practice — each contrasting "FHIR alone" with PREDIQA.</p>
+    </section>
+
+    <hr class="div">
+
+    <!-- ============ USE CASE 1 ============ -->
+    <section class="gap-block">
+      <div class="section-num">Use case 01</div>
+      <h2>The denial that never should have happened.</h2>
+      <p>A 68-year-old Medicare patient is admitted for sepsis, seven-day stay, billed DRG 871. It denies for "insufficient documentation of acute organ dysfunction."</p>
+
+      <div class="uc-meta">
+        <div class="uc-before">
+          <h4>FHIR alone</h4>
+          <p>LOS, sepsis diagnosis and denial code sit in three separate resources. The RCM team appeals <em>after</em> the denial — ~40% success, $18,000 at risk.</p>
+        </div>
+        <div class="vs"></div>
+        <div class="uc-after">
+          <h4>With PREDIQA</h4>
+          <p>NLP flags the missing element, documentation scoring holds the claim, correlation flags the attending — corrected pre-submission, claim approved.</p>
+        </div>
+      </div>
+
+      <figure>
+        <svg viewBox="0 0 760 230" role="img" aria-label="Pre-submission flow: NLP flags a gap, the claim is held on score, the attending is flagged, the document is corrected and the claim is approved.">
+          <defs><marker id="ar7" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <rect x="30" y="50" width="156" height="58" rx="7" fill="#F1E9F0" stroke="#7d4b78"/>
+          <text class="d-title" x="108" y="74" text-anchor="middle" fill="#5d3559">NLP reads note</text>
+          <text class="d-sub" x="108" y="93" text-anchor="middle" fill="#5d3559">AKI missing</text>
+          <rect x="216" y="50" width="156" height="58" rx="7" fill="#F7EFDF" stroke="#C8761E"/>
+          <text class="d-title" x="294" y="74" text-anchor="middle" fill="#8a5012">claim held</text>
+          <text class="d-sub" x="294" y="93" text-anchor="middle" fill="#8a5012">score 62 / 78</text>
+          <rect x="402" y="50" width="156" height="58" rx="7" fill="#EAF1F6" stroke="#2E6F95"/>
+          <text class="d-title" x="480" y="74" text-anchor="middle" fill="#1f4f6b">attending flagged</text>
+          <text class="d-sub" x="480" y="93" text-anchor="middle" fill="#1f4f6b">3 in 45 days</text>
+          <rect x="588" y="50" width="142" height="58" rx="7" fill="#E6F0EC" stroke="#1D9E75"/>
+          <text class="d-title" x="659" y="74" text-anchor="middle" fill="#147a59">corrected</text>
+          <text class="d-sub" x="659" y="93" text-anchor="middle" fill="#147a59">pre-submit</text>
+          <line x1="186" y1="79" x2="213" y2="79" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar7)"/>
+          <line x1="372" y1="79" x2="399" y2="79" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar7)"/>
+          <line x1="558" y1="79" x2="585" y2="79" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar7)"/>
+          <line x1="380" y1="108" x2="380" y2="150" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar7)"/>
+          <rect x="285" y="152" width="190" height="50" rx="7" fill="#E6F0EC" stroke="#1D9E75"/>
+          <text class="d-title" x="380" y="172" text-anchor="middle" fill="#147a59">$18,000 collected</text>
+          <text class="d-sub" x="380" y="190" text-anchor="middle" fill="#147a59">claim approved</text>
+        </svg>
+        <figcaption>Fig. 7 — Denial prevented before submission, not appealed after.</figcaption>
+      </figure>
+
+      <p class="takeaway"><b>The difference:</b> FHIR <em>stored</em> the data. PREDIQA <em>prevented</em> the denial before it happened.</p>
+    </section>
+
+    <hr class="div">
+
+    <!-- ============ USE CASE 2 ============ -->
+    <section class="gap-block">
+      <div class="section-num">Use case 02</div>
+      <h2>The fraud pattern no single tool saw.</h2>
+      <p>A specialty clinic submits 847 claims over six months for the highest-complexity E/M code (99285).</p>
+
+      <div class="uc-meta">
+        <div class="uc-before">
+          <h4>FHIR alone</h4>
+          <p>Every claim is individually valid, so FHIR triggers no flag. The payer audits post-payment — an 18-month recovery.</p>
+        </div>
+        <div class="vs"></div>
+        <div class="uc-after">
+          <h4>With PREDIQA</h4>
+          <p>Signals across the claims compound: 12-minute visits against a 40-minute threshold, 94% billing 99285 against a 23% norm, diagnoses 3.2 SD off baseline.</p>
+        </div>
+      </div>
+
+      <figure>
+        <svg viewBox="0 0 760 240" role="img" aria-label="Three weak fraud signals combine into a compound score that is escalated for pre-payment review.">
+          <defs><marker id="ar8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <rect x="30" y="40" width="196" height="44" rx="6" fill="#EFECE5" stroke="#B0A899"/>
+          <text class="d-sub" x="128" y="58" text-anchor="middle" fill="#42454d">visit 12 min vs 40</text>
+          <text class="d-cap" x="128" y="74" text-anchor="middle">clinical signal</text>
+          <rect x="30" y="98" width="196" height="44" rx="6" fill="#EFECE5" stroke="#B0A899"/>
+          <text class="d-sub" x="128" y="116" text-anchor="middle" fill="#42454d">94% bill 99285 vs 23%</text>
+          <text class="d-cap" x="128" y="132" text-anchor="middle">financial signal</text>
+          <rect x="30" y="156" width="196" height="44" rx="6" fill="#EFECE5" stroke="#B0A899"/>
+          <text class="d-sub" x="128" y="174" text-anchor="middle" fill="#42454d">Dx 3.2 SD off baseline</text>
+          <text class="d-cap" x="128" y="190" text-anchor="middle">legal signal</text>
+          <path d="M226 62 L266 62 L266 116 L322 116" fill="none" stroke="#5C6473" stroke-width="1.4"/>
+          <line x1="226" y1="120" x2="322" y2="120" stroke="#5C6473" stroke-width="1.4"/>
+          <path d="M226 178 L266 178 L266 124 L322 124" fill="none" stroke="#5C6473" stroke-width="1.4"/>
+          <line x1="322" y1="120" x2="346" y2="120" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar8)"/>
+          <rect x="348" y="90" width="160" height="60" rx="7" fill="#F7EFDF" stroke="#C8761E"/>
+          <text class="d-title" x="428" y="116" text-anchor="middle" fill="#8a5012">compound 181</text>
+          <text class="d-sub" x="428" y="136" text-anchor="middle" fill="#8a5012">1.6× amplifier</text>
+          <line x1="508" y1="120" x2="548" y2="120" stroke="#5C6473" stroke-width="1.6" marker-end="url(#ar8)"/>
+          <rect x="550" y="90" width="180" height="60" rx="7" fill="#F6ECE9" stroke="#A6324A"/>
+          <text class="d-title" x="640" y="116" text-anchor="middle" fill="#7c2438">held pre-payment</text>
+          <text class="d-sub" x="640" y="136" text-anchor="middle" fill="#A6324A">$2.3M · 30 days</text>
+        </svg>
+        <figcaption>Fig. 8 — Weak signals compound into one escalation no resource saw alone.</figcaption>
+      </figure>
+
+      <p class="takeaway"><b>The difference:</b> FHIR stored 847 valid-looking claims. PREDIQA saw the pattern across all 847 — flagging $2.3M pre-payment, in 30 days instead of 18 months.</p>
+    </section>
+
+    <hr class="div">
+
+    <!-- ============ USE CASE 3 ============ -->
+    <section class="gap-block">
+      <div class="section-num">Use case 03</div>
+      <h2>The CEO's board meeting.</h2>
+      <p>EBITDA is down 8% and the board wants to know why.</p>
+
+      <div class="uc-meta">
+        <div class="uc-before">
+          <h4>FHIR alone</h4>
+          <p>CFO, CMO and compliance each export data over days; a consultant assembles a deck. The board sees disconnected metrics with no root cause.</p>
+        </div>
+        <div class="vs"></div>
+        <div class="uc-after">
+          <h4>With PREDIQA</h4>
+          <p>Hundreds of data points collapse into one accountable number, decomposed into its three real drivers with dollar impact.</p>
+        </div>
+      </div>
+
+      <figure>
+        <svg viewBox="0 0 760 262" role="img" aria-label="One compound risk score at the top decomposes into three board-level drivers.">
+          <defs><marker id="ar9" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <rect x="280" y="40" width="200" height="58" rx="8" fill="#F7EFDF" stroke="#C8761E"/>
+          <text class="d-title" x="380" y="64" text-anchor="middle" fill="#8a5012">compound score: 73</text>
+          <text class="d-sub" x="380" y="84" text-anchor="middle" fill="#8a5012">up from 61 · deteriorating</text>
+          <path d="M330 98 L330 122 L150 122 L150 146" fill="none" stroke="#5C6473" stroke-width="1.4" marker-end="url(#ar9)"/>
+          <path d="M380 98 L380 146" fill="none" stroke="#5C6473" stroke-width="1.4" marker-end="url(#ar9)"/>
+          <path d="M430 98 L430 122 L610 122 L610 146" fill="none" stroke="#5C6473" stroke-width="1.4" marker-end="url(#ar9)"/>
+          <rect x="44" y="148" width="200" height="66" rx="7" fill="#EAF1F6" stroke="#2E6F95"/>
+          <text class="d-sub" x="144" y="168" text-anchor="middle" fill="#1f4f6b">clinical + financial</text>
+          <text class="d-cap" x="144" y="186" text-anchor="middle">ICU LOS + denials</text>
+          <text class="d-cap" x="144" y="203" text-anchor="middle">$340K impact</text>
+          <rect x="280" y="148" width="200" height="66" rx="7" fill="#F1E9F0" stroke="#7d4b78"/>
+          <text class="d-sub" x="380" y="168" text-anchor="middle" fill="#5d3559">operational + legal</text>
+          <text class="d-cap" x="380" y="186" text-anchor="middle">OR util 64% vs 82%</text>
+          <text class="d-cap" x="380" y="203" text-anchor="middle">12 CAP items late</text>
+          <rect x="516" y="148" width="200" height="66" rx="7" fill="#E6F0EC" stroke="#1D9E75"/>
+          <text class="d-sub" x="616" y="168" text-anchor="middle" fill="#147a59">empathy + technology</text>
+          <text class="d-cap" x="616" y="186" text-anchor="middle">HCAHPS down 11%</text>
+          <text class="d-cap" x="616" y="203" text-anchor="middle">EHR downtime link</text>
+          <text class="d-cap" x="380" y="244" text-anchor="middle">board meeting: 20 minutes, not 2 hours</text>
+        </svg>
+        <figcaption>Fig. 9 — One number, three root causes, specific dollar impacts.</figcaption>
+      </figure>
+
+      <p class="takeaway"><b>The difference:</b> FHIR provided hundreds of data points. PREDIQA gave the CEO one number, three root causes, and a forward view.</p>
+    </section>
+
+  </div>
+</main>
+
+<!-- ============ CLOSER ============ -->
+<section class="closer">
+  <div class="wrap">
+    <h2>FHIR is the foundation, not the ceiling.</h2>
+    <p>It solved interoperability, made data portable, and broke down silos between EHR vendors. But it was never designed to correlate a clinical event with a financial outcome, read meaning from a physician's note, apply payer rules to prevent denials, or generate a compound risk score for a board.</p>
+    <p>The next generation of healthcare platforms won't replace FHIR — they'll complete it with an intelligence layer that turns standardised data into correlated, predictive, actionable insight. That layer is PREDIQA.</p>
+    <p class="stamp">The data is there. The interoperability is solved.<br><span>Now the intelligence must follow.</span></p>
+  </div>
+</section>
+
+<!-- ============ REFERENCES ============ -->
+<section class="refs">
+  <div class="wrap">
+    <h3>References</h3>
+    <ol class="reflist">
+      <li id="r1">Kodjin. <span class="src">FHIR Analytics: A New Era of Healthcare Data Insights.</span> Note that FHIR's structure was not originally designed for analytical queries and that its nested-JSON format challenges transformation into analytics-ready tabular structures. <a href="https://kodjin.com/blog/fhir-analytics-in-healthcare-industry/">kodjin.com/blog/fhir-analytics-in-healthcare-industry</a></li>
+      <li id="r2">Khan A., et&nbsp;al. <span class="src">Transforming Healthcare Analytics with FHIR: A Framework for Standardizing and Analyzing Clinical Data.</span> Healthcare (MDPI), 2023;11(12):1729. Establishes that FHIR's nested, graph-like structure is difficult to represent in relational models, which analytics requires. <a href="https://www.mdpi.com/2227-9032/11/12/1729">mdpi.com/2227-9032/11/12/1729</a></li>
+      <li id="r3">Researchers (Univ. cohort study). <span class="src">DermaDashboard: Bridging the Gap Between FHIR Standards and Clinical Usability.</span> PubMed Central, PMC12543034. Reports that cohort analytics with many-to-many relations over the FHIR REST API are extremely time-consuming and, in many cases, impossible, requiring countless chained queries. <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12543034/">ncbi.nlm.nih.gov/pmc/articles/PMC12543034</a></li>
+      <li id="r4">SQL on FHIR working group. <span class="src">SQL on FHIR — Tabular views of FHIR data using FHIRPath.</span> npj Digital Medicine (Nature), 2025. Documents the deliberate exclusion of sorting, grouping and join operations from the specification, deferred to downstream engines after flattening. <a href="https://www.nature.com/articles/s41746-025-01708-w">nature.com/articles/s41746-025-01708-w</a></li>
+      <li id="r5">Review of NLP for structured and unstructured data in EHRs. <span class="src">Most information about a patient's disease history remains locked behind free-form clinical text.</span> ResearchGate / peer-reviewed review, 2023. <a href="https://www.researchgate.net/publication/392483843">researchgate.net/publication/392483843</a></li>
+      <li id="r6">NLP phenotyping study. <span class="src">Using Natural Language Processing of Clinical Notes to Supplement Structured EHR Data.</span> medRxiv preprint. Demonstrates that structured fields under-capture phenotypes present in narrative notes, which NLP recovers. <a href="https://www.medrxiv.org/content/10.64898/2026.01.18.26344356">medrxiv.org · NLP clinical-notes phenotyping</a></li>
+      <li id="r7">CapMinds. <span class="src">A Complete Guide to FHIR Resources &amp; API for Healthcare Interoperability.</span> Notes that a complete picture of health and expense requires merging provider clinical data with payer claims data. <a href="https://www.capminds.com/blog/a-complete-guide-to-fhir-resources-fhir-api/">capminds.com/blog/a-complete-guide-to-fhir-resources-fhir-api</a></li>
+    </ol>
+  </div>
+</section>
+
+<footer class="legal">
+  <div class="wrap">
+    PREDIQA — Healthcare Intelligence Fabric · COFLER · FLIP · EMPATHIFY · FRAUDIQ<br>
+    Technical brief. Pilot metrics are illustrative of platform capability. Diagnoses, dollar figures and scores in scenarios are simulated for explanation. © Diversity Impact Ventures.
+  </div>
+</footer>
+
+</body>
+</html>
